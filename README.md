@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz de Microbiologia</title>
+
+<style>
+/* ==========================
+   ESTILO GERAL
+========================== */
+body{
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+  padding:15px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.container{
+  background:#1e293b;
+  padding:25px;
+  border-radius:12px;
+  width:95%;
+  max-width:600px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+}
+
+h1,h2{text-align:center;}
+
+/* BOTÕES DE MATÉRIA/ASSUNTO */
+.temaBtn{
+  background:#111827;
+  padding:16px;
+  margin:10px 0;
+  border-radius:8px;
+  cursor:pointer;
+  text-align:center;
+  font-size:22px;
+  border:3px solid #1f2937;
+  user-select:none;
+  touch-action:manipulation;
+}
+
+.selecionadaMenu{
+  background:#1d4ed8 !important;
+  border:3px solid #60a5fa !important;
+}
+
+/* BARRA DE PROGRESSO DO ASSUNTO */
+.progressoAssunto{
+  height:8px;
+  background:#1f2937;
+  border-radius:6px;
+  margin-top:6px;
+}
+
+.barraInterna{
+  height:8px;
+  background:#22c55e;
+  border-radius:6px;
+}
+
+/* PERGUNTAS E OPÇÕES */
+.pergunta{
+  font-size:24px;
+  margin-bottom:20px;
+}
+
+.opcao{
+  background:#111827;
+  padding:16px;
+  margin:10px 0;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:20px;
+  border:3px solid #1f2937;
+}
+
+.selecionada{background:#1d4ed8 !important;border:3px solid #60a5fa !important;}
+.correta{background:#16a34a !important;border:3px solid #4ade80;}
+.errada{background:#dc2626 !important;border:3px solid #f87171;}
+
+/* BOTOES GERAIS */
+button{
+  margin-top:15px;
+  padding:14px;
+  width:100%;
+  border:none;
+  background:#2563eb;
+  color:white;
+  border-radius:8px;
+  font-size:18px;
+  cursor:pointer;
+}
+
+/* INPUT PARA NOME */
+input{
+  width:100%;
+  padding:12px;
+  border-radius:8px;
+  border:none;
+  margin-top:10px;
+  font-size:18px;
+}
+
+/* BARRA DE PROGRESSO GERAL DO QUIZ */
+#barra{
+  height:12px;
+  background:#1f2937;
+  border-radius:10px;
+  margin-bottom:20px;
+  overflow:hidden;
+}
+
+#progresso{
+  height:12px;
+  background:#3b82f6;
+  width:0%;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div class="container" id="login">
+<h1>Quiz de Microbiologia</h1>
+<p>Digite seu nome para salvar seu progresso</p>
+<input id="nomeUsuario" placeholder="Seu nome">
+<button id="btnEntrar">Entrar</button>
+</div>
+
+<!-- MENU DE MATÉRIAS -->
+<div class="container" id="menu" style="display:none"></div>
+
+<!-- TELA DE QUIZ -->
+<div class="container" id="quiz" style="display:none">
+<h1>Quiz de Microbiologia</h1>
+<div id="barra"><div id="progresso"></div></div>
+<div id="placar"></div>
+<div id="tema"></div>
+<div class="pergunta" id="pergunta"></div>
+
+<div class="opcao" id="op0"></div>
+<div class="opcao" id="op1"></div>
+<div class="opcao" id="op2"></div>
+<div class="opcao" id="op3"></div>
+
+<div id="explicacao"></div>
+
+<button id="btnConfirmar">Confirmar</button>
+<button id="btnProxima" style="display:none">Próxima</button>
+<button id="btnVoltar">Voltar</button>
+</div>
+
+<script>
+// ==========================
+// CONFIGURAÇÕES E VARIÁVEIS
+// ==========================
+const QUIZ_ID = "quiz de Microbiologiateste" // ID único do quiz
+let usuario=""
+let materiaSelecionada=null
+let assuntoSelecionado=null
+let opcaoSelecionada=null
+let perguntas=[]
+let atual=0
+let pontos=0
+let respondido=false
+let erros=[]
+
+
+// ==========================
+// BANCO DE PERGUNTAS
+// ==========================
+let banco=[
+
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nPor que a microbiologia é importante na Engenharia Florestal?","opcoes":["Para estudar apenas animais silvestres","Para entender microrganismos do solo e da floresta","Para substituir o manejo florestal","Para estudar apenas rios"],"correta":1,"explicacao":"A microbiologia permite compreender microrganismos do solo, decomposição, doenças e equilíbrio do ecossistema florestal."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nOs microrganismos do solo ajudam principalmente em:","opcoes":["Destruir a vegetação","Produzir nutrientes e decompor matéria orgânica","Secar o solo","Eliminar árvores"],"correta":1,"explicacao":"Microrganismos decompositores liberam nutrientes importantes para o crescimento das plantas."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nUm engenheiro florestal precisa conhecer microbiologia para:","opcoes":["Entender doenças e microrganismos presentes na floresta","Apenas cortar árvores","Construir estradas","Estudar apenas animais"],"correta":0,"explicacao":"O conhecimento microbiológico ajuda a compreender doenças, solo, decomposição e riscos biológicos."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nDurante um estudo de solo florestal, um aluno percebeu a presença de fungos decompositores. Qual a importância desse conhecimento?","opcoes":["Eliminar toda a microbiota do solo","Entender o ciclo de nutrientes e a fertilidade do solo","Apenas estudar clima","Reduzir a biodiversidade"],"correta":1,"explicacao":"Fungos decompositores são fundamentais para reciclagem de nutrientes e fertilidade do solo."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nA microbiologia contribui para o manejo florestal porque permite:","opcoes":["Ignorar a qualidade do solo","Compreender doenças, decomposição e interações ecológicas","Eliminar todos os microrganismos","Substituir o estudo da botânica"],"correta":1,"explicacao":"O manejo florestal depende da compreensão das interações microbiológicas no ambiente."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nUm engenheiro florestal avalia bactérias fixadoras de nitrogênio no solo. Esse estudo ajuda principalmente em:","opcoes":["Reduzir o crescimento das plantas","Aumentar a fertilidade do solo","Eliminar árvores nativas","Diminuir a biodiversidade"],"correta":1,"explicacao":"Bactérias fixadoras de nitrogênio ajudam no crescimento das plantas e fertilidade do solo."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nA importância da microbiologia na Engenharia Florestal está mais relacionada a qual conjunto de fatores?","opcoes":["Somente corte de madeira","Produção industrial urbana","Dinâmica do solo, doenças florestais e ciclos biogeoquímicos","Apenas monitoramento climático"],"correta":2,"explicacao":"A microbiologia ajuda a entender ciclos biogeoquímicos, doenças e dinâmica do solo florestal."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nAo estudar microrganismos em áreas de reflorestamento, o engenheiro florestal consegue:","opcoes":["Eliminar a vegetação nativa","Ignorar a qualidade do solo","Avaliar recuperação ecológica e fertilidade do ambiente","Substituir o manejo florestal"],"correta":2,"explicacao":"A microbiologia permite avaliar recuperação do solo e equilíbrio ecológico em reflorestamento."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nConsiderando a atuação profissional, o conhecimento em microbiologia permite ao engenheiro florestal:","opcoes":["Evitar completamente o estudo do solo","Tomar decisões sobre manejo, saúde florestal e conservação ambiental","Substituir o estudo da ecologia","Trabalhar apenas em laboratório hospitalar"],"correta":1,"explicacao":"A microbiologia auxilia na tomada de decisões no manejo, conservação e saúde dos ecossistemas florestais."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nPor que a microbiologia é importante na Engenharia Florestal?","opcoes":["Para estudar apenas animais","Para construir estradas","Para entender microrganismos do solo e da floresta","Para substituir a ecologia"],"correta":2,"explicacao":"A microbiologia permite compreender microrganismos do solo, decomposição, doenças e equilíbrio do ecossistema florestal."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nOs microrganismos do solo ajudam principalmente em:","opcoes":["Secar o solo","Produzir nutrientes e decompor matéria orgânica","Eliminar árvores","Destruir a vegetação"],"correta":1,"explicacao":"Microrganismos decompositores liberam nutrientes importantes para o crescimento das plantas."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nO conhecimento em microbiologia permite ao engenheiro florestal:","opcoes":["Entender doenças e microrganismos presentes na floresta","Ignorar o solo","Estudar apenas clima","Apenas cortar árvores"],"correta":0,"explicacao":"A microbiologia ajuda a compreender doenças, solo e microrganismos do ambiente florestal."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nDurante o manejo florestal, o estudo dos microrganismos do solo permite ao profissional:","opcoes":["Compreender a fertilidade e a decomposição da matéria orgânica","Eliminar toda a microbiota","Ignorar o ciclo de nutrientes","Reduzir a biodiversidade"],"correta":0,"explicacao":"Os microrganismos são fundamentais na decomposição e manutenção da fertilidade do solo."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nUm engenheiro florestal analisa fungos micorrízicos em uma floresta. Esse estudo é importante porque:","opcoes":["Eliminam o solo","Destroem as raízes","As micorrizas ajudam na absorção de nutrientes pelas plantas","Reduzem o crescimento vegetal"],"correta":2,"explicacao":"Fungos micorrízicos auxiliam na absorção de nutrientes e crescimento das plantas."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nA microbiologia aplicada à Engenharia Florestal contribui principalmente para:","opcoes":["Construção de estradas","Compreensão dos ciclos biogeoquímicos e saúde florestal","Substituição da botânica","Apenas estudo de rios"],"correta":1,"explicacao":"A microbiologia ajuda a entender ciclos biogeoquímicos e saúde do ecossistema florestal."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nAo avaliar bactérias e fungos no solo de uma floresta nativa, o engenheiro florestal consegue compreender melhor:","opcoes":["Apenas o relevo do terreno","Somente o crescimento das árvores","Apenas o clima da região","A dinâmica ecológica, fertilidade do solo e possíveis doenças florestais"],"correta":3,"explicacao":"Os microrganismos influenciam fertilidade, doenças e dinâmica ecológica do ambiente florestal."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nA microbiologia é essencial na Engenharia Florestal porque permite integrar conhecimentos de:","opcoes":["Somente zoologia","Construção civil","Dinâmica do solo, ecologia microbiana e manejo sustentável","Apenas climatologia"],"correta":2,"explicacao":"A microbiologia integra solo, ecologia microbiana e manejo sustentável."},
+{"materia":"Microbiologia","assunto":"Por que estudar microbiologia em Engenharia Florestal","pergunta":"\nConsiderando a atuação profissional, o estudo da microbiologia permite ao engenheiro florestal tomar decisões sobre:","opcoes":["Apenas transporte de madeira","Construção de rodovias","Somente corte de árvores","Manejo sustentável, conservação ambiental e controle de doenças florestais"],"correta":3,"explicacao":"A microbiologia fornece base científica para decisões de manejo sustentável e conservação ambiental."},
+
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nO manejo florestal em florestas nativas deve considerar os microrganismos porque eles:","opcoes":["Apenas consomem madeira","Participam da decomposição e fertilidade do solo","Eliminam as árvores","Secam o solo"],"correta":1,"explicacao":"Os microrganismos participam da decomposição e manutenção da fertilidade do solo, sendo essenciais no manejo florestal."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nQual é o principal papel dos microrganismos no solo florestal?","opcoes":["Decompor matéria orgânica e reciclar nutrientes","Destruir o solo","Impedir o crescimento das plantas","Eliminar fungos"],"correta":0,"explicacao":"Os microrganismos decompõem matéria orgânica e reciclam nutrientes essenciais para o ecossistema."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nO manejo florestal sustentável deve preservar:","opcoes":["A microbiota do solo","Somente as árvores comerciais","Apenas os rios","Somente os animais"],"correta":0,"explicacao":"A microbiota do solo é fundamental para o equilíbrio ecológico e sustentabilidade da floresta."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nDurante a exploração de madeira em floresta nativa, o microbiologista alerta sobre a compactação do solo porque ela pode:","opcoes":["Aumentar os microrganismos","Melhorar a fertilidade","Reduzir a atividade microbiana e prejudicar o ciclo de nutrientes","Eliminar a vegetação rapidamente"],"correta":2,"explicacao":"A compactação do solo reduz a atividade microbiana e prejudica o ciclo de nutrientes."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nEm um plano de manejo florestal, o estudo de fungos decompositores é importante porque:","opcoes":["Eles impedem o crescimento das árvores","Participam da ciclagem de nutrientes e decomposição da matéria orgânica","Eliminam bactérias","Secam o solo"],"correta":1,"explicacao":"Fungos decompositores são fundamentais para a ciclagem de nutrientes no solo florestal."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nUm engenheiro florestal observa a redução de matéria orgânica após o manejo. Sob olhar microbiológico, isso pode indicar:","opcoes":["Aumento da biodiversidade","Maior fertilidade","Equilíbrio ecológico","Redução da atividade microbiana e da decomposição natural"],"correta":3,"explicacao":"A redução da matéria orgânica pode indicar diminuição da atividade microbiana e da decomposição natural."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nAo planejar o manejo de uma floresta nativa, a análise da microbiota do solo permite ao engenheiro florestal:","opcoes":["Eliminar fungos do ambiente","Ignorar a fertilidade do solo","Avaliar a sustentabilidade ecológica e o impacto do manejo","Substituir a vegetação nativa"],"correta":2,"explicacao":"A microbiota do solo indica fertilidade e sustentabilidade do manejo florestal."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nA retirada excessiva de madeira em florestas nativas pode afetar os microrganismos porque:","opcoes":["Aumenta a umidade do solo","Melhora o equilíbrio ecológico","Aumenta a fertilidade","Altera o ambiente e reduz a diversidade microbiana"],"correta":3,"explicacao":"A retirada excessiva altera o ambiente e reduz a diversidade microbiana."},
+{"materia":"Microbiologia","assunto":"Manejo florestal em florestas nativas (Sob um olhar do microbiologista)","pergunta":"\nConsiderando o manejo florestal sustentável, a microbiologia ajuda principalmente a:","opcoes":["Eliminar microrganismos do solo","Garantir equilíbrio ecológico e ciclagem de nutrientes","Aumentar apenas a produção de madeira","Reduzir a biodiversidade"],"correta":1,"explicacao":"A microbiologia contribui para o equilíbrio ecológico e ciclagem de nutrientes no manejo florestal sustentável."},
+
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nAo transitar em uma área florestal, uma pessoa pode entrar em contato com microrganismos presentes em:","opcoes":["Solo, água e plantas","Apenas no ar condicionado","Somente em animais domésticos","Apenas em rios urbanos"],"correta":0,"explicacao":"Microrganismos estão presentes no solo, água, plantas e ambiente florestal em geral."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nUma das formas de exposição a microrganismos em florestas é através de:","opcoes":["Contato com solo e água contaminada","Somente luz solar","Apenas vento seco","Somente árvores cortadas"],"correta":0,"explicacao":"O contato com solo e água contaminada pode expor o indivíduo a microrganismos patogênicos."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nO uso de equipamentos de proteção ao entrar em áreas florestais serve para:","opcoes":["Aumentar o calor corporal","Evitar contato com microrganismos e agentes patogênicos","Melhorar a respiração","Aumentar a velocidade de caminhada"],"correta":2,"explicacao":"Equipamentos de proteção reduzem o contato com microrganismos e agentes patogênicos."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nUm engenheiro florestal ao caminhar em uma área úmida sem proteção pode se expor a microrganismos presentes no solo. Qual medida preventiva é mais adequada?","opcoes":["Andar descalço","Usar botas e equipamentos de proteção","Ignorar o risco","Evitar beber água"],"correta":1,"explicacao":"O uso de botas e EPIs reduz o contato com microrganismos presentes no solo."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nEm áreas florestais, a presença de água parada pode representar risco microbiológico porque:","opcoes":["Aumenta o oxigênio","Melhora o solo","Diminui a biodiversidade","Pode abrigar microrganismos patogênicos"],"correta":3,"explicacao":"Água parada pode conter microrganismos causadores de doenças."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nDurante atividades de campo, o contato com matéria orgânica em decomposição pode representar risco porque:","opcoes":["Aumenta a temperatura","Pode conter fungos e bactérias patogênicas","Reduz a umidade","Aumenta a fertilidade do solo"],"correta":2,"explicacao":"Matéria orgânica em decomposição pode conter fungos e bactérias patogênicas."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nUm profissional que trabalha frequentemente em florestas nativas deve tomar cuidado com ferimentos na pele porque:","opcoes":["A pele fica mais resistente","Aumenta a força física","Diminui o risco de doenças","Microrganismos podem entrar no organismo através de lesões"],"correta":3,"explicacao":"Ferimentos facilitam a entrada de microrganismos patogênicos no corpo."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nAo analisar riscos microbiológicos em área florestal, o uso de luvas, botas e roupas adequadas é importante porque:","opcoes":["Aumenta o calor corporal","Reduz o contato direto com microrganismos e agentes infecciosos","Melhora a produtividade da floresta","Aumenta a velocidade de trabalho"],"correta":1,"explicacao":"EPIs reduzem o contato com microrganismos e diminuem o risco de infecção."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças ao transitar em área florestal (exposição a microrganismos)","pergunta":"\nConsiderando o risco microbiológico em áreas florestais, a higienização das mãos após atividades de campo é essencial porque:","opcoes":["Remove microrganismos e reduz o risco de infecções","Aumenta a resistência física","Melhora o desempenho no trabalho","Reduz a umidade do solo"],"correta":0,"explicacao":"A higienização remove microrganismos e reduz o risco de infecções."},
+
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nQual é uma forma básica de proteção contra insetos em áreas florestais?","opcoes":["Andar sem camisa","Ignorar os insetos","Usar repelente","Dormir no solo"],"correta":2,"explicacao":"O uso de repelente ajuda a evitar picadas de insetos e possíveis doenças."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nO uso de roupas compridas em áreas florestais serve para:","opcoes":["Aumentar o calor corporal","Evitar arranhaduras e picadas","Dificultar a caminhada","Aumentar o peso do corpo"],"correta":1,"explicacao":"Roupas compridas protegem contra arranhaduras e insetos."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nO uso de máscara em ambientes com poeira e matéria orgânica ajuda a evitar:","opcoes":["Calor excessivo","Cansaço","Desidratação","Inalação de aerossóis contaminados"],"correta":3,"explicacao":"Máscaras reduzem a inalação de aerossóis com microrganismos."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nDurante uma atividade de campo, um estudante utiliza botas, luvas e repelente. Essa atitude tem como objetivo principal:","opcoes":["Aumentar a produtividade","Melhorar a caminhada","Reduzir a exposição a microrganismos e insetos","Evitar o calor"],"correta":2,"explicacao":"EPIs reduzem o contato com microrganismos e insetos."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nAo trabalhar em área com muita vegetação densa, o uso de luvas é importante porque:","opcoes":["Aumenta a velocidade","Melhora a força","Reduz o calor","Evita arranhaduras e contato com microrganismos"],"correta":3,"explicacao":"Luvas evitam arranhaduras e contato com agentes infecciosos."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nEm áreas com folhas secas e poeira, o uso de máscara ajuda a prevenir:","opcoes":["Desidratação","Inalação de partículas contaminadas","Picadas de insetos","Cortes na pele"],"correta":1,"explicacao":"Máscaras evitam a inalação de partículas contaminadas."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nUm engenheiro florestal precisa entrar em uma área com grande presença de insetos e matéria orgânica. A melhor estratégia preventiva é:","opcoes":["Usar repelente, roupas compridas e equipamentos de proteção","Entrar rapidamente sem proteção","Usar apenas botas","Evitar levar água"],"correta":0,"explicacao":"O uso combinado de EPIs reduz significativamente o risco de exposição."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nAo avaliar riscos de aerossóis em ambiente florestal, o uso de máscara e óculos de proteção é importante porque:","opcoes":["Aumenta a temperatura corporal","Diminui o esforço físico","Protege vias respiratórias e olhos contra partículas contaminadas","Aumenta a produtividade da floresta"],"correta":2,"explicacao":"Máscaras e óculos protegem contra aerossóis e partículas contaminadas."},
+{"materia":"Microbiologia","assunto":"Como evitar (métodos de prevenção e proteção em meio florestal: insetos, arranhaduras, exposição, aerossóis)","pergunta":"\nConsiderando a prevenção microbiológica em áreas florestais, a combinação de repelente, roupas adequadas, EPIs e higienização é importante porque:","opcoes":["Aumenta a velocidade de trabalho","Reduz riscos de infecção e exposição a microrganismos","Substitui a vacinação","Elimina todos os microrganismos do ambiente"],"correta":1,"explicacao":"A combinação de medidas reduz o risco de infecção e exposição a microrganismos."},
+
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nNa Amazônia, muitos insetos podem transmitir doenças principalmente através de:","opcoes":["Somente contato com árvores","Somente água limpa","Picadas de insetos","Apenas vento"],"correta":2,"explicacao":"Insetos como mosquitos podem transmitir doenças através de picadas."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nUma forma básica de evitar doenças transmitidas por insetos na Amazônia é:","opcoes":["Andar sem proteção","Usar repelente e roupas adequadas","Dormir no solo","Ignorar os insetos"],"correta":1,"explicacao":"Repelente e roupas adequadas ajudam a evitar picadas de insetos."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nAnimais silvestres podem transmitir doenças quando:","opcoes":["São observados à distância","Estão dormindo","Estão na floresta","Ocorre contato direto ou mordidas"],"correta":3,"explicacao":"Contato direto ou mordidas podem transmitir microrganismos patogênicos."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nDurante uma expedição na Amazônia, um estudante é orientado a usar botas e repelente. O objetivo principal é:","opcoes":["Melhorar a caminhada","Reduzir o calor","Evitar picadas de insetos e contato com animais","Aumentar a velocidade"],"correta":2,"explicacao":"Botas e repelentes ajudam a evitar picadas e contato com animais transmissores de doenças."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nA presença de animais peçonhentos e insetos vetores na Amazônia representa risco porque:","opcoes":["Aumenta a umidade","Melhora o solo","Reduz a vegetação","Podem transmitir microrganismos e toxinas"],"correta":3,"explicacao":"Animais e insetos podem transmitir microrganismos patogênicos e toxinas."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nAo trabalhar em área amazônica, evitar tocar em animais silvestres é importante porque:","opcoes":["Aumenta o calor corporal","Reduz o risco de infecções e transmissão de doenças","Melhora a produtividade","Facilita o manejo"],"correta":1,"explicacao":"Evitar contato com animais reduz o risco de transmissão de doenças."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nUm engenheiro florestal em atividade na Amazônia deve manter distância de animais silvestres porque:","opcoes":["Pode evitar mordidas, arranhaduras e transmissão de microrganismos","Os animais não atacam humanos","Isso melhora a fertilidade do solo","Reduz a umidade do ambiente"],"correta":0,"explicacao":"Manter distância reduz o risco de ataques e transmissão de doenças."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nAo avaliar riscos microbiológicos na Amazônia, o uso de repelente, roupas adequadas e atenção ao ambiente ajuda a:","opcoes":["Aumentar a velocidade de trabalho","Eliminar todos os insetos","Reduzir o risco de doenças transmitidas por vetores","Melhorar o clima"],"correta":2,"explicacao":"Essas medidas reduzem o risco de doenças transmitidas por insetos e animais."},
+{"materia":"Microbiologia","assunto":"Exposição a doenças (insetos, animais) na Amazônia","pergunta":"\nConsiderando o risco de doenças transmitidas por insetos e animais na Amazônia, a melhor estratégia preventiva é:","opcoes":["Dormir sem proteção","Utilizar EPIs, repelente, atenção ao ambiente e evitar contato com animais","Entrar rapidamente na floresta","Ignorar os riscos naturais"],"correta":1,"explicacao":"A combinação de EPIs, repelente e atenção ao ambiente reduz os riscos microbiológicos."},
+
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nO que é reflorestamento?","opcoes":["Corte de árvores nativas","Queima de áreas florestais","Plantio de árvores para recuperar áreas degradadas","Construção de estradas na floresta"],"correta":2,"explicacao":"Reflorestamento é o plantio de árvores para recuperar áreas degradadas ou desmatadas."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nUma forma comum de realizar o reflorestamento é:","opcoes":["Retirar toda a vegetação","Plantar mudas de espécies florestais","Construir casas na área","Queimar o solo"],"correta":1,"explicacao":"O reflorestamento é feito principalmente com o plantio de mudas de espécies florestais."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nNo Brasil, o reflorestamento é importante principalmente para:","opcoes":["Aumentar o desmatamento","Reduzir rios","Melhorar estradas","Recuperar áreas degradadas e preservar o meio ambiente"],"correta":3,"explicacao":"O reflorestamento ajuda a recuperar áreas degradadas e preservar o meio ambiente."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nDurante um projeto de reflorestamento, o plantio de espécies nativas é recomendado porque:","opcoes":["Crescem mais devagar","Não precisam de solo","Aumentam o desmatamento","Mantêm o equilíbrio ecológico e microbiológico do solo"],"correta":3,"explicacao":"Espécies nativas mantêm o equilíbrio ecológico e ajudam os microrganismos do solo."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nO reflorestamento no Brasil ajuda na microbiologia do solo porque:","opcoes":["Elimina os microrganismos","Resseca o solo","Remove nutrientes","Favorece a vida microbiana e a ciclagem de nutrientes"],"correta":3,"explicacao":"O reflorestamento favorece a atividade microbiana e a ciclagem de nutrientes no solo."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nEm áreas degradadas, o reflorestamento contribui para:","opcoes":["Aumentar a erosão","Reduzir a recuperação ambiental","Melhorar apenas a paisagem","Restaurar o solo, a vegetação e os microrganismos"],"correta":3,"explicacao":"O reflorestamento ajuda na recuperação do solo, vegetação e microrganismos do ambiente."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nUm engenheiro florestal ao planejar reflorestamento no Brasil deve priorizar espécies nativas porque:","opcoes":["Favorecem a biodiversidade e a microbiota do solo","Crescem sem água","Eliminam fungos do solo","Reduzem a vida microbiana"],"correta":0,"explicacao":"Espécies nativas favorecem a biodiversidade e a microbiota do solo."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nNo contexto microbiológico, o reflorestamento adequado ajuda a:","opcoes":["Eliminar bactérias","Reduzir a matéria orgânica","Equilibrar os microrganismos e restaurar o solo","Secar o ambiente"],"correta":2,"explicacao":"O reflorestamento equilibra microrganismos e restaura o solo."},
+{"materia":"Microbiologia","assunto":"Reflorestamento: o que é, como é feito e reflorestamento no Brasil","pergunta":"\nConsiderando o reflorestamento no Brasil, a melhor estratégia é:","opcoes":["Plantar qualquer espécie rapidamente","Utilizar espécies nativas, cuidar do solo e manter equilíbrio microbiológico","Desmatar e plantar depois","Ignorar o tipo de solo"],"correta":1,"explicacao":"O reflorestamento eficiente exige espécies nativas e equilíbrio do solo e microbiota."},
+
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nUma das árvores mais utilizadas em reflorestamento no Brasil é:","opcoes":["Mogno","Ipê","Eucalipto","Castanheira"],"correta":2,"explicacao":"O eucalipto é uma das árvores mais utilizadas no reflorestamento no Brasil."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nO pinus é muito utilizado no Brasil principalmente para:","opcoes":["Produção de frutas","Produção de madeira e papel","Produção de remédios","Produção de sementes apenas"],"correta":1,"explicacao":"O pinus é muito usado na produção de madeira, papel e celulose."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nO eucalipto é bastante plantado no Brasil porque:","opcoes":["Cresce apenas na Amazônia","Não precisa de solo","Não cresce rápido","Cresce rápido e tem uso industrial"],"correta":3,"explicacao":"O eucalipto cresce rápido e é muito usado na indústria de papel e madeira."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nEm projetos de reflorestamento no Brasil, o eucalipto é escolhido muitas vezes porque:","opcoes":["Não precisa de água","Não cresce em solo pobre","Tem crescimento rápido e boa produtividade","Elimina microrganismos do solo"],"correta":2,"explicacao":"O eucalipto é escolhido pelo crescimento rápido e alta produtividade."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nO pinus pode influenciar a microbiologia do solo porque:","opcoes":["Seca completamente o solo","Não interage com o ambiente","Remove todas as bactérias","Altera a matéria orgânica e a atividade microbiana"],"correta":3,"explicacao":"O pinus pode alterar a matéria orgânica e a microbiota do solo."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nO uso de espécies nativas como ipê e castanheira é importante porque:","opcoes":["Crescem sem solo","Mantêm o equilíbrio ecológico e microbiológico","Eliminam a fauna","Reduzem a biodiversidade"],"correta":1,"explicacao":"Espécies nativas ajudam a manter o equilíbrio ecológico e microbiológico."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nEm um planejamento florestal, a escolha entre eucalipto, pinus e espécies nativas deve considerar:","opcoes":["Impactos ecológicos e microbiológicos do solo","Apenas a cor das folhas","Somente o tamanho da árvore","A velocidade do vento"],"correta":0,"explicacao":"A escolha deve considerar impactos ecológicos e microbiológicos do solo."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nO plantio intensivo de eucalipto e pinus pode causar impactos microbiológicos porque:","opcoes":["Elimina totalmente a floresta","Aumenta apenas a temperatura","Pode alterar a diversidade microbiana do solo","Não interfere no ambiente"],"correta":2,"explicacao":"Monoculturas podem alterar a diversidade microbiana do solo."},
+{"materia":"Microbiologia","assunto":"Quais as árvores mais comuns usadas no Brasil","pergunta":"\nConsiderando microbiologia e reflorestamento no Brasil, a melhor escolha de espécies é:","opcoes":["Somente eucalipto","Mistura de espécies nativas e comerciais com manejo adequado","Somente pinus","Qualquer árvore sem planejamento"],"correta":1,"explicacao":"A mistura de espécies e manejo adequado mantém o equilíbrio microbiológico e ecológico."},
+
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"O que estuda a patologia?","opcoes":["Estudo de vírus","Estudo de antibióticos","Estudo científico das doenças","Estudo de vacinas"],"correta":2,"explicacao":"Patologia é o estudo científico das doenças."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"O que define etiologia?","opcoes":["Sintomas da doença","Evolução da doença","Tratamento da doença","Causa e origem da doença"],"correta":3,"explicacao":"Etiologia estuda a causa e origem das doenças."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"O que é patogênese?","opcoes":["Causa da doença","Desenvolvimento da doença no organismo","Prevenção de doenças","Vacinação"],"correta":1,"explicacao":"Patogênese é o desenvolvimento da doença no organismo."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"O que são patógenos?","opcoes":["Células de defesa","Vitaminas","Microrganismos que causam doenças","Hormônios"],"correta":2,"explicacao":"Patógenos são microrganismos que causam doenças."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"O que é infecção?","opcoes":["Inoculação de vacinas","Equilíbrio da microbiota","Invasão ou colonização do corpo por patógenos","Produção de anticorpos"],"correta":2,"explicacao":"Infecção é a invasão ou colonização do organismo por patógenos."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"O que caracteriza uma doença?","opcoes":["Estado normal do organismo","Produção de vitaminas","Alteração do estado normal de saúde","Imunidade elevada"],"correta":2,"explicacao":"Doença é a alteração do estado normal de saúde."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"A etiologia está relacionada a:","opcoes":["Sintomas","Causa e origem da doença","Tratamento","Imunidade"],"correta":1,"explicacao":"Etiologia estuda a causa e origem da doença."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"Infecção ocorre quando:","opcoes":["O corpo está saudável","Há vacinação","Há invasão do corpo por patógenos","Há ausência de microrganismos"],"correta":3,"explicacao":"Infecção ocorre quando há invasão do organismo por patógenos."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"Patogênese descreve:","opcoes":["Causa da doença","Sintomas leves","Desenvolvimento da doença no organismo","Cura da doença"],"correta":2,"explicacao":"Patogênese é o desenvolvimento da doença no organismo."},
+{"materia":"Microbiologia","assunto":"Conceitos principais","pergunta":"Doença é definida como:","opcoes":["Estado de equilíbrio do corpo","Alteração do estado normal de saúde","Aumento de imunidade","Presença de vitaminas"],"correta":2,"explicacao":"Doença é a alteração do estado normal de saúde."},
+
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"O que são sintomas?","opcoes":["Alterações observáveis pelo médico","Sensações subjetivas relatadas pelo paciente","Agentes infecciosos","Alterações laboratoriais"],"correta":1,"explicacao":"Sintomas são sensações subjetivas percebidas e relatadas pelo paciente."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"O que são sinais clínicos?","opcoes":["Sensações internas do paciente","Alterações observáveis pelo profissional de saúde","Causas das doenças","Microrganismos patogênicos"],"correta":1,"explicacao":"Sinais são alterações visíveis ou mensuráveis pelo profissional de saúde."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"O que é síndrome?","opcoes":["Uma única doença específica","Conjunto de sinais e sintomas","Um tipo de bactéria","Um exame laboratorial"],"correta":1,"explicacao":"Síndrome é o conjunto de sinais e sintomas que ocorrem juntos."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Doença comunicável é aquela que:","opcoes":["Não apresenta sintomas","Pode ser transmitida entre indivíduos","Não possui causa infecciosa","Só ocorre em plantas"],"correta":1,"explicacao":"Doença comunicável pode ser transmitida de um hospedeiro para outro."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Qual exemplo é um sintoma?","opcoes":["Febre visível","Dor relatada pelo paciente","Ferida exposta","Fratura óssea"],"correta":1,"explicacao":"Dor é um sintoma porque é subjetiva e relatada pelo paciente."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Qual exemplo é um sinal clínico?","opcoes":["Dor de cabeça","Ansiedade","Febre medida pelo termômetro","Cansaço"],"correta":2,"explicacao":"Febre é um sinal porque pode ser observada e medida."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Síndrome pode ser definida como:","opcoes":["Um único sintoma isolado","Conjunto de sinais e sintomas relacionados","Um microrganismo","Uma vacina"],"correta":1,"explicacao":"Síndrome é um conjunto de sinais e sintomas que ocorrem juntos."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Uma doença comunicável é:","opcoes":["Uma doença genética","Uma doença transmissível","Uma deficiência nutricional","Uma lesão mecânica"],"correta":1,"explicacao":"Doenças comunicáveis podem ser transmitidas entre indivíduos."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Qual é um exemplo de sintoma?","opcoes":["Inflamação visível","Dor no corpo","Lesão aberta","Hemorragia"],"correta":1,"explicacao":"Dor é um sintoma subjetivo relatado pelo paciente."},
+{"materia":"Microbiologia","assunto":"Classificação das Doenças","pergunta":"Qual é um exemplo de sinal clínico?","opcoes":["Náusea","Dor","Febre observada","Ansiedade"],"correta":2,"explicacao":"Febre é um sinal clínico observável."},
+
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"O que é microbiota normal?","opcoes":["Microrganismos sempre patogênicos","Conjunto de microrganismos que vivem no corpo sem causar doença","Apenas vírus presentes no ambiente","Antibióticos naturais do corpo"],"correta":1,"explicacao":"Microbiota normal é o conjunto de microrganismos que vivem no corpo humano sem causar doença."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota residente é caracterizada por:","opcoes":["Ser sempre patogênica","Viver temporariamente no corpo","Viver normalmente e de forma estável no corpo","Não existir no organismo humano"],"correta":2,"explicacao":"A microbiota residente vive normalmente e de forma estável no corpo humano."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota transitória é:","opcoes":["Permanente no corpo","Sempre benéfica","Vinda do ambiente e temporária","Exclusiva do intestino"],"correta":2,"explicacao":"A microbiota transitória vem do ambiente e permanece por pouco tempo."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota residente pode ser:","opcoes":["Sempre patogênica","Comensal ou mutualista","Sempre viral","Exclusivamente fúngica"],"correta":1,"explicacao":"A microbiota residente pode ser comensal ou mutualista."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota transitória geralmente:","opcoes":["Se fixa permanentemente","Permanece por horas ou dias","É obrigatoriamente benéfica","É formada apenas por bactérias"],"correta":1,"explicacao":"A microbiota transitória permanece por curto período (horas ou dias)."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota normal:","opcoes":["Sempre causa doenças","Não interage com o corpo","Pode ser benéfica ou neutra","É formada apenas por vírus"],"correta":2,"explicacao":"A microbiota normal pode ser benéfica ou neutra ao organismo."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota residente é importante porque:","opcoes":["Aumenta infecções","Ajuda no equilíbrio do organismo","Elimina todas as células do corpo","Substitui o sistema nervoso"],"correta":1,"explicacao":"A microbiota residente ajuda no equilíbrio do organismo."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota transitória vem principalmente:","opcoes":["Do ambiente externo","Do DNA humano","Do sangue","Da medula óssea"],"correta":0,"explicacao":"A microbiota transitória vem do ambiente externo."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota residente pode se recompor porque:","opcoes":["Não sofre alterações","É facilmente restaurada após pequenas mudanças","É sempre eliminada","Não existe em adultos"],"correta":1,"explicacao":"A microbiota residente pode se recompor após pequenas alterações."},
+{"materia":"Microbiologia","assunto":"Microbiota Normal","pergunta":"A microbiota transitória é considerada potencialmente patogênica porque:","opcoes":["Sempre causa doença","Pode incluir microrganismos que causam doenças","É formada apenas por vírus inofensivos","Não interage com o corpo"],"correta":1,"explicacao":"Pode incluir microrganismos potencialmente patogênicos."},
+
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"Qual é uma das principais funções da microbiota intestinal?","opcoes":["Produção de hormônios sexuais","Produção de oxigênio no sangue","Formação de tecido ósseo","Auxílio na digestão e absorção de nutrientes"],"correta":3,"explicacao":"A microbiota auxilia na digestão e na absorção de nutrientes."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"O que é microbiota?","opcoes":["Conjunto de células sanguíneas","Conjunto de microrganismos que vivem no corpo humano","Conjunto de órgãos do sistema digestivo","Conjunto de vírus sempre patogênicos"],"correta":1,"explicacao":"Microbiota é o conjunto de microrganismos que vivem no corpo humano."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"Qual vitamina pode ser produzida com auxílio da microbiota intestinal?","opcoes":["Vitamina A","Vitamina C","Vitamina K","Vitamina E"],"correta":2,"explicacao":"A microbiota auxilia na produção de vitamina K."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"O que é disbiose?","opcoes":["Aumento da imunidade","Equilíbrio perfeito da microbiota","Formação de novos tecidos intestinais","Desequilíbrio da microbiota intestinal"],"correta":3,"explicacao":"Disbiose é o desequilíbrio da microbiota intestinal."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"A microbiota intestinal contribui principalmente para:","opcoes":["Produção de células ósseas","Proteção contra microrganismos patogênicos","Formação de neurônios","Controle direto da pressão arterial"],"correta":1,"explicacao":"A microbiota atua na proteção contra microrganismos patogênicos e na defesa do organismo."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"Qual sistema está mais relacionado à ação da microbiota?","opcoes":["Sistema urinário","Sistema esquelético","Sistema imunológico","Sistema nervoso"],"correta":2,"explicacao":"A microbiota tem forte relação com o sistema imunológico."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"Uma consequência comum da disbiose é:","opcoes":["Aumento da visão","Problemas digestivos","Crescimento acelerado dos ossos","Melhora da respiração"],"correta":1,"explicacao":"A disbiose pode causar problemas digestivos e inflamações."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"A microbiota saudável ajuda a:","opcoes":["Eliminar todas as bactérias do corpo","Manter equilíbrio do organismo e imunidade","Parar completamente a digestão","Reduzir todos os nutrientes absorvidos"],"correta":1,"explicacao":"A microbiota saudável ajuda a manter o equilíbrio do organismo e fortalece a imunidade."},
+{"materia":"Microbiologia","assunto":"Funções da Microbiota e Disbiose","pergunta":"O uso excessivo de antibióticos pode:","opcoes":["Fortalecer sempre a microbiota","Não causar nenhum efeito","Eliminar apenas vírus do corpo","Prejudicar a microbiota intestinal"],"correta":3,"explicacao":"Antibióticos podem prejudicar a microbiota intestinal, causando disbiose."},
+
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"O primeiro postulado de Koch afirma que o patógeno deve estar presente em todos os indivíduos doentes. Isso significa que:","opcoes":["O agente está presente apenas no ambiente","O agente não está relacionado à doença","O agente aparece apenas em animais saudáveis","O agente está presente em todos os indivíduos doentes"],"correta":3,"explicacao":"O primeiro postulado afirma que o microrganismo deve estar presente em todos os indivíduos doentes."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"O isolamento do patógeno em cultura pura significa que:","opcoes":["O microrganismo é eliminado do organismo","O agente só existe em misturas naturais","O microrganismo não pode ser cultivado","O microrganismo é separado de outros e cultivado isoladamente"],"correta":3,"explicacao":"Cultura pura significa que o microrganismo é isolado e cultivado sem outros contaminantes."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"O que ocorre quando um patógeno isolado é introduzido em um animal saudável?","opcoes":["O animal não sofre nenhuma alteração","O animal fica imune imediatamente","O animal desenvolve uma doença diferente","O patógeno desaparece sem efeito"],"correta":2,"explicacao":"O terceiro postulado afirma que o patógeno deve causar a mesma doença no hospedeiro saudável."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"Após a inoculação do patógeno em um animal saudável, espera-se que:","opcoes":["O animal se cure imediatamente","O animal desenvolva a mesma doença","O agente desapareça sem infecção","O animal nunca apresente sintomas"],"correta":1,"explicacao":"O postulado afirma que o patógeno deve causar a doença no hospedeiro saudável."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"Qual das alternativas representa um dos postulados de Koch?","opcoes":["O patógeno deve ser invisível ao microscópio","O patógeno não pode ser isolado","O patógeno deve existir apenas em ambientes externos","O patógeno deve ser isolado em cultura pura"],"correta":3,"explicacao":"Um dos postulados afirma que o agente deve ser isolado em cultura pura."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"O último postulado de Koch estabelece que:","opcoes":["O patógeno deve desaparecer após a infecção","O hospedeiro não pode ser analisado","O microrganismo deve ser eliminado imediatamente","O patógeno deve ser novamente isolado do hospedeiro infectado"],"correta":3,"explicacao":"O último postulado afirma que o mesmo microrganismo deve ser reisolado do hospedeiro doente."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"A importância dos postulados de Koch está em:","opcoes":["Comprovar a origem das plantas","Demonstrar relação causal entre microrganismo e doença","Eliminar todos os vírus do ambiente","Produzir vacinas diretamente"],"correta":1,"explicacao":"Os postulados ajudam a estabelecer relação causal entre microrganismo e doença."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"O que pode invalidar os postulados de Koch em alguns casos modernos?","opcoes":["Doenças causadas por múltiplos fatores ou microrganismos","Excesso de oxigênio no ambiente","Uso de microscópios","Presença de antibióticos naturais"],"correta":0,"explicacao":"Algumas doenças não têm um único agente causal, dificultando a aplicação dos postulados."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"Após a inoculação do patógeno em um animal saudável, o resultado esperado é:","opcoes":["O desaparecimento do microrganismo","A cura imediata do animal","O desenvolvimento da mesma doença observada","A ausência total de sintomas sempre"],"correta":2,"explicacao":"O patógeno deve reproduzir a mesma doença no hospedeiro saudável."},
+{"materia":"Microbiologia","assunto":"Etiologia das Doenças Infecciosas (Postulados de Koch)","pergunta":"O último passo dos postulados de Koch envolve:","opcoes":["Produção de anticorpos","Reisolamento do patógeno do hospedeiro infectado","Destruição do microrganismo","Vacinação do animal saudável"],"correta":1,"explicacao":"O último postulado exige o reisolamento do mesmo patógeno do hospedeiro doente."},
+
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma doença endêmica é aquela que:","opcoes":["Desaparece completamente da população","Ocorre constantemente em determinada região","Acontece apenas uma vez no mundo","Atinge apenas animais selvagens"],"correta":1,"explicacao":"Endemia é a presença constante de uma doença em determinada região."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma epidemia ocorre quando:","opcoes":["A doença desaparece da região","Há poucos casos isolados e sem padrão","A doença ocorre de forma constante e normal em uma região","Há aumento de casos acima do esperado em uma região"],"correta":3,"explicacao":"Epidemia é o aumento de casos acima do esperado em uma determinada região."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma pandemia é caracterizada por:","opcoes":["Casos isolados em uma cidade","Presença constante em uma região específica","Aumento de casos apenas em um hospital","Disseminação da doença em vários países ou continentes"],"correta":3,"explicacao":"Pandemia é a disseminação mundial ou em vários continentes de uma doença."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma doença esporádica é aquela que:","opcoes":["Acontece de forma rara e irregular","Ocorre constantemente em uma região","Espalha-se pelo mundo inteiro","Apresenta grande aumento de casos em uma região"],"correta":1,"explicacao":"Doença esporádica ocorre de forma rara e sem padrão definido."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"A definição de endemia é:","opcoes":["Aumento repentino de casos","Presença constante de uma doença em uma área","Casos raros e isolados","Doença espalhada mundialmente"],"correta":1,"explicacao":"Endemia é a presença constante e previsível de uma doença em uma região específica."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma epidemia pode ser definida como:","opcoes":["Doença sempre presente em uma população","Casos isolados sem importância epidemiológica","Doença presente apenas em animais","Aumento de casos acima do esperado em uma região"],"correta":3,"explicacao":"Epidemia é o aumento inesperado de casos em uma região."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma pandemia ocorre quando a doença:","opcoes":["Fica restrita a uma cidade pequena","Ocorre apenas em animais domésticos","Se espalha por vários países ou continentes","Desaparece rapidamente após poucos casos"],"correta":2,"explicacao":"Pandemia é a disseminação global de uma doença infecciosa."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma doença esporádica é caracterizada por:","opcoes":["Aumento contínuo de casos","Ocorrência rara e isolada","Presença constante em uma região","Disseminação mundial"],"correta":1,"explicacao":"Esporádica significa ocorrência rara e isolada de casos."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma epidemia ocorre quando há:","opcoes":["Presença constante e previsível da doença","Redução total de casos","Aumento de casos acima do esperado em uma região","Disseminação mundial da doença"],"correta":2,"explicacao":"Epidemia é o aumento de casos acima do esperado em uma região específica."},
+{"materia":"Microbiologia","assunto":"Ocorrência das Doenças (Endemia, Epidemia, Pandemia, Esporádica)","pergunta":"Uma pandemia é definida como:","opcoes":["Doença restrita a uma região pequena","Doença com casos isolados","Disseminação mundial de uma doença","Doença que ocorre constantemente em uma região"],"correta":2,"explicacao":"Pandemia é a disseminação mundial de uma doença infecciosa."},
+
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"O que são fatores predisponentes em doenças infecciosas?","opcoes":["Agentes causadores diretos da doença","Condições que aumentam a chance de infecção","Medicamentos que eliminam vírus","Vacinas obrigatórias"],"correta":1,"explicacao":"Fatores predisponentes são condições que aumentam a chance de uma pessoa desenvolver uma infecção."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"Qual fator NÃO é considerado predisponente para doenças infecciosas?","opcoes":["Uso de antibióticos corretamente","Desnutrição","Imunidade baixa","Falta de higiene"],"correta":0,"explicacao":"O uso correto de antibióticos não é um fator predisponente, pois ajuda no tratamento de infecções."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"O estresse pode ser um fator predisponente para infecções porque:","opcoes":["Aumenta a produção de oxigênio no corpo","Fortalece imediatamente o sistema imunológico","Elimina microrganismos patogênicos","Enfraquece o sistema imunológico"],"correta":3,"explicacao":"O estresse pode enfraquecer o sistema imunológico, aumentando a suscetibilidade a infecções."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"Qual exemplo representa um fator predisponente ambiental?","opcoes":["Vacinação em massa","Boa alimentação","Ambientes contaminados e insalubres","Prática de exercícios físicos"],"correta":2,"explicacao":"Ambientes contaminados e insalubres aumentam o risco de infecções."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"Idosos são mais suscetíveis a infecções porque:","opcoes":["Possuem imunidade naturalmente reduzida","Têm produção aumentada de anticorpos","Não entram em contato com microrganismos","Sempre são vacinados contra todas as doenças"],"correta":1,"explicacao":"O envelhecimento reduz a eficiência do sistema imunológico, aumentando a suscetibilidade a doenças."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"Qual condição é um fator predisponente biológico?","opcoes":["Boa higiene pessoal","Uso de máscara de proteção","Doenças crônicas como diabetes","Vacinação em dia"],"correta":2,"explicacao":"Doenças crônicas como diabetes enfraquecem o organismo e aumentam o risco de infecções."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"A falta de higiene contribui para infecções porque:","opcoes":["Reduz completamente a presença de microrganismos","Fortalece o sistema imunológico automaticamente","Impede qualquer contato com agentes infecciosos","Facilita a entrada de microrganismos patogênicos no organismo"],"correta":3,"explicacao":"A falta de higiene facilita a entrada e proliferação de microrganismos patogênicos."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"O uso indiscriminado de antibióticos pode ser um fator predisponente porque:","opcoes":["Aumenta a resistência do organismo automaticamente","Elimina apenas vírus sem afetar bactérias","Não causa nenhum impacto na microbiota","Desequilibra a microbiota e facilita infecções"],"correta":2,"explicacao":"O uso excessivo de antibióticos pode causar disbiose e aumentar a suscetibilidade a infecções."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"Qual é um fator predisponente nutricional?","opcoes":["Excesso de hidratação","Desnutrição","Vacinação","Prática de exercícios físicos"],"correta":1,"explicacao":"A desnutrição enfraquece o sistema imunológico, aumentando o risco de infecções."},
+{"materia":"Microbiologia","assunto":"Fatores Predisponentes","pergunta":"Imunossupressão significa:","opcoes":["Aumento das defesas do organismo","Redução das defesas do organismo","Produção acelerada de anticorpos","Eliminação total de microrganismos do corpo"],"correta":1,"explicacao":"Imunossupressão é a redução da capacidade de defesa do sistema imunológico."},
+
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"Qual é uma via comum de disseminação de infecções respiratórias?","opcoes":["Água contaminada","Alimentos mal cozidos","Gotículas respiratórias","Contato sexual"],"correta":2,"explicacao":"As infecções respiratórias são frequentemente transmitidas por gotículas respiratórias liberadas ao tossir ou espirrar."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"A transmissão por contato direto ocorre quando:","opcoes":["O microrganismo permanece no ar por longos períodos","Há contato físico entre indivíduo infectado e saudável","A transmissão ocorre apenas por vetores","A transmissão ocorre apenas por água contaminada"],"correta":1,"explicacao":"A transmissão direta ocorre por contato físico entre uma pessoa infectada e uma saudável."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"Fômites são importantes na disseminação de infecções porque:","opcoes":["São células de defesa do organismo","São vacinas aplicadas em superfícies","São objetos contaminados que transmitem microrganismos","São anticorpos presentes no sangue"],"correta":2,"explicacao":"Fômites são objetos contaminados que podem transmitir microrganismos patogênicos."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"Qual é um exemplo de transmissão indireta?","opcoes":["Aperto de mão","Beijo","Uso de objetos contaminados compartilhados","Abraço entre pessoas"],"correta":3,"explicacao":"A transmissão indireta ocorre por meio de objetos contaminados, como copos ou maçanetas."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"A transmissão vetorial ocorre quando:","opcoes":["O ar transporta vírus diretamente entre pessoas","Há contato direto entre indivíduos","Insetos transmitem o agente infeccioso","A água potável transmite a doença"],"correta":2,"explicacao":"Na transmissão vetorial, insetos como mosquitos podem transmitir o agente infeccioso."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"Qual é uma porta de entrada comum de microrganismos no corpo humano?","opcoes":["Sistema ósseo","Mucosas e pele lesionada","Unhas","Cabelos"],"correta":1,"explicacao":"Mucosas e pele lesionada são principais portas de entrada para microrganismos."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"A disseminação por aerossóis ocorre principalmente através de:","opcoes":["Água contaminada","Partículas suspensas no ar","Sangue contaminado","Alimentos sólidos"],"correta":1,"explicacao":"Aerossóis são partículas muito pequenas que permanecem suspensas no ar e podem transmitir doenças."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"Qual situação favorece a disseminação de infecções?","opcoes":["Vacinação em massa","Higiene adequada","Isolamento de doentes","Aglomerações em locais fechados"],"correta":3,"explicacao":"Locais com aglomeração favorecem a transmissão de microrganismos entre pessoas."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"A transmissão fecal-oral ocorre principalmente por:","opcoes":["Ar contaminado","Contato sanguíneo","Ingestão de água ou alimentos contaminados","Picada de insetos"],"correta":2,"explicacao":"A transmissão fecal-oral ocorre pela ingestão de água ou alimentos contaminados."},
+{"materia":"Microbiologia","assunto":"Disseminação da Infecção","pergunta":"Qual fator aumenta a disseminação de doenças infecciosas?","opcoes":["Saneamento básico adequado","Vacinação em massa","Falta de higiene e saneamento precário","Uso de máscaras de proteção"],"correta":2,"explicacao":"A falta de higiene e saneamento básico favorece a disseminação de doenças infecciosas."},
+
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"O que são infecções nosocomiais?","opcoes":["Infecções adquiridas antes da internação","Infecções transmitidas apenas por alimentos","Infecções adquiridas durante a internação hospitalar","Infecções exclusivas de animais"],"correta":2,"explicacao":"Infecções nosocomiais são aquelas adquiridas durante a internação ou atendimento hospitalar."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Infecções emergentes são aquelas que:","opcoes":["Já foram completamente erradicadas","Ocorrem apenas em hospitais","Não têm relação com microrganismos","Surgem recentemente ou aumentam sua incidência na população"],"correta":3,"explicacao":"Infecções emergentes são doenças novas ou que estão aumentando sua incidência na população."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Qual é uma das principais causas de infecções hospitalares?","opcoes":["Excesso de vacinação","Falta de higiene das mãos","Consumo de água potável","Uso correto de antibióticos"],"correta":2,"explicacao":"A falta de higiene das mãos é uma das principais causas de infecções hospitalares."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Um exemplo de infecção nosocomial é:","opcoes":["Gripe adquirida na rua","Pneumonia associada à ventilação mecânica","Resfriado comum leve","Dor de garganta viral comunitária"],"correta":1,"explicacao":"A pneumonia associada à ventilação mecânica é um exemplo clássico de infecção hospitalar."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"A transmissão cruzada ocorre quando:","opcoes":["O paciente se cura sozinho","Não há contato entre pacientes","Um paciente transmite microrganismo a outro por mãos de profissionais de saúde","A infecção ocorre apenas por água contaminada"],"correta":2,"explicacao":"A transmissão cruzada ocorre quando microrganismos são transferidos entre pacientes por mãos ou instrumentos contaminados."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Um fator que contribui para o surgimento de infecções emergentes é:","opcoes":["Melhoria da higiene hospitalar","Vacinação em massa","Redução da população mundial","Mutação de microrganismos"],"correta":3,"explicacao":"A mutação de microrganismos pode gerar novos agentes infecciosos ou aumento de resistência."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Infecções oportunistas ocorrem principalmente em:","opcoes":["Pessoas saudáveis com imunidade alta","Pacientes imunossuprimidos","Indivíduos vacinados","Ambientes totalmente estéreis"],"correta":2,"explicacao":"Infecções oportunistas ocorrem em indivíduos com o sistema imunológico enfraquecido."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Uma medida essencial para prevenir infecções hospitalares é:","opcoes":["Aumentar o número de visitas","Reduzir a higienização do ambiente","Higienização das mãos","Compartilhar equipamentos sem esterilização"],"correta":2,"explicacao":"A higienização das mãos é a principal medida de prevenção de infecções hospitalares."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Qual pode ser um reservatório de microrganismos em hospitais?","opcoes":["Ar puro filtrado","Superfícies e equipamentos contaminados","Água destilada estéril","Vacinas armazenadas corretamente"],"correta":1,"explicacao":"Superfícies e equipamentos podem atuar como reservatórios de microrganismos patogênicos."},
+{"materia":"Microbiologia","assunto":"Infecções Nosocomiais e Emergentes","pergunta":"Um surto hospitalar é caracterizado por:","opcoes":["Redução de casos infecciosos","Aumento súbito de casos dentro do hospital","Ausência total de infecções","Erradicação de microrganismos do ambiente"],"correta":1,"explicacao":"Um surto hospitalar ocorre quando há aumento súbito de casos de infecção em um ambiente hospitalar."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual vidraria é mais utilizada para medir volumes com alta precisão?","opcoes":["Béquer","Proveta","Erlenmeyer","Funil"],"correta":1,"explicacao":"A proveta é utilizada para medir volumes com maior precisão que béquer e Erlenmeyer."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual vidraria é usada principalmente para misturar soluções sem precisão volumétrica?","opcoes":["Balão volumétrico","Proveta","Béquer","Pipeta volumétrica"],"correta":2,"explicacao":"O béquer é usado para misturar soluções, não para medições precisas."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual vidraria é utilizada para medir e transferir pequenos volumes com alta precisão?","opcoes":["Funil","Pipeta","Béquer","Erlenmeyer"],"correta":1,"explicacao":"A pipeta é usada para medir e transferir pequenos volumes com precisão."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual vidraria é usada para conter reações e pode ser aquecida com segurança?","opcoes":["Béquer","Funil","Lâmina de vidro","Tubo de ensaio"],"correta":3,"explicacao":"O tubo de ensaio é usado para reações em pequena escala e pode ser aquecido."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Em um experimento, um aluno precisa medir 50 mL de solução com precisão razoável. Qual vidraria ele deve usar?","opcoes":["Béquer","Proveta","Erlenmeyer","Placa de Petri"],"correta":1,"explicacao":"A proveta é adequada para medições de volume com boa precisão."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Um pesquisador precisa preparar uma solução com volume exato de 100 mL. Qual vidraria é mais adequada?","opcoes":["Proveta","Béquer","Balão volumétrico","Funil"],"correta":2,"explicacao":"O balão volumétrico é usado para preparar soluções em volumes exatos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Durante uma filtração simples, qual vidraria é usada em conjunto com papel de filtro?","opcoes":["Funil","Béquer","Tubo de ensaio","Erlenmeyer"],"correta":0,"explicacao":"O funil é utilizado para realizar filtrações com papel de filtro."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual vidraria é frequentemente usada em titulações devido ao seu formato que facilita agitação sem derramar?","opcoes":["Béquer","Erlenmeyer","Proveta","Lâmina"],"correta":1,"explicacao":"O Erlenmeyer é ideal para titulações por permitir agitação sem derramamento."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual vidraria pode ser confundida com béquer, mas é mais precisa para medições?","opcoes":["Erlenmeyer","Proveta","Funil","Placa de Petri"],"correta":1,"explicacao":"A proveta é mais precisa que o béquer para medir volumes."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Em um laboratório, um aluno usa uma vidraria graduada para transferir líquidos em pequenas quantidades. Qual pode ser essa vidraria?","opcoes":["Béquer","Proveta","Funil","Placa de Petri"],"correta":1,"explicacao":"A proveta é uma vidraria graduada usada para medir e transferir líquidos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Qual combinação de características melhor define o balão volumétrico?","opcoes":["Usado para aquecimento e mistura sem precisão","Usado para medições exatas de volume único","Usado para filtração de líquidos","Usado para armazenamento de sólidos"],"correta":1,"explicacao":"O balão volumétrico é usado para preparar soluções em volume exato e fixo."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias)","pergunta":"Em um experimento, o aluno precisa aquecer uma pequena amostra de líquido. Qual vidraria é mais adequada?","opcoes":["Proveta","Béquer","Tubo de ensaio","Funil"],"correta":2,"explicacao":"O tubo de ensaio é usado para aquecimento de pequenas amostras."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Em uma análise que exige medição precisa de um volume fixo de 25 mL de solução padrão, qual vidraria deve ser utilizada?","opcoes":["Proveta","Béquer","Balão volumétrico","Erlenmeyer"],"correta":2,"explicacao":"O balão volumétrico é indicado para preparar e conter volumes fixos e exatos de soluções."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é mais indicada para realizar titulações com controle de adição gota a gota de reagente?","opcoes":["Bureta","Proveta","Pipeta graduada","Erlenmeyer"],"correta":0,"explicacao":"A bureta permite liberação controlada e precisa de líquidos, ideal para titulações."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Em uma transferência de volume com alta precisão fixa, qual vidraria é mais adequada?","opcoes":["Pipeta volumétrica","Proveta","Béquer","Funil"],"correta":0,"explicacao":"A pipeta volumétrica é projetada para transferir volumes exatos com alta precisão."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria apresenta graduação e permite medições aproximadas, sendo menos precisa que pipetas e buretas?","opcoes":["Proveta","Pipeta volumétrica","Balão volumétrico","Bureta"],"correta":0,"explicacao":"A proveta possui graduação e é usada para medições com precisão intermediária."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é mais adequada para reações com agitação constante sem risco de respingos?","opcoes":["Erlenmeyer","Béquer","Proveta","Tubo de ensaio"],"correta":0,"explicacao":"O Erlenmeyer permite agitação eficiente com menor risco de derramamento."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Em uma filtração simples por gravidade, qual combinação é mais adequada?","opcoes":["Béquer e bastão de vidro","Funil e papel de filtro","Proveta e pipeta","Erlenmeyer e bureta"],"correta":1,"explicacao":"O funil com papel de filtro é o conjunto padrão para filtração por gravidade."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é mais indicada para armazenar soluções preparadas com volume exato sem variação?","opcoes":["Balão volumétrico","Béquer","Proveta","Erlenmeyer"],"correta":0,"explicacao":"O balão volumétrico mantém volume fixo e é usado para soluções padrão."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é mais apropriada para medir volumes variados com precisão moderada em uma mesma escala?","opcoes":["Pipeta graduada","Pipeta volumétrica","Balão volumétrico","Funil"],"correta":0,"explicacao":"A pipeta graduada permite medir diferentes volumes com precisão intermediária."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é mais utilizada para dissolver substâncias e realizar misturas simples sem necessidade de precisão?","opcoes":["Béquer","Balão volumétrico","Bureta","Pipeta volumétrica"],"correta":0,"explicacao":"O béquer é usado para preparo e mistura de soluções sem precisão volumétrica."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Em um procedimento de aquecimento leve e mistura de substâncias, qual vidraria é mais indicada?","opcoes":["Erlenmeyer","Proveta","Funil","Bureta"],"correta":0,"explicacao":"O Erlenmeyer pode ser aquecido e permite agitação segura de soluções."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é mais adequada para medir volumes aproximados de líquidos antes de um ajuste fino?","opcoes":["Proveta","Pipeta volumétrica","Balão volumétrico","Bureta"],"correta":0,"explicacao":"A proveta é usada para medições aproximadas antes de ajustes mais precisos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Instrumentos de laboratório (vidrarias) II","pergunta":"Qual vidraria é usada especificamente para adicionar líquidos em volumes controlados durante reações contínuas?","opcoes":["Bureta","Béquer","Funil","Erlenmeyer"],"correta":0,"explicacao":"A bureta permite adição controlada e contínua de líquidos em reações químicas."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Qual é um exemplo de risco biológico em laboratório?","opcoes":["Queimadura por chama","Exposição a microrganismos patogênicos","Queda de equipamento pesado","Choque elétrico"],"correta":1,"explicacao":"Risco biológico envolve exposição a microrganismos patogênicos que podem causar infecções."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Qual é um risco físico comum em laboratório?","opcoes":["Exposição a vírus","Contato com sangue contaminado","Cortes com vidrarias quebradas","Inalação de bactérias"],"correta":2,"explicacao":"Cortes com vidrarias quebradas são exemplos de risco físico, pois envolvem lesões mecânicas."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Qual substância representa risco químico?","opcoes":["Água destilada","Soro fisiológico","Ácido forte","Agar nutritivo"],"correta":2,"explicacao":"Ácidos fortes representam risco químico devido à sua ação corrosiva e potencial de causar queimaduras."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Qual medida reduz o risco de contaminação biológica?","opcoes":["Comer no laboratório","Uso de EPIs","Trabalhar sem luvas","Reutilizar pipetas sem lavagem"],"correta":1,"explicacao":"O uso de EPIs reduz o risco de contato com agentes biológicos e contaminação."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Em um laboratório, um aluno derrama ácido sobre a bancada. Qual é o principal risco?","opcoes":["Risco biológico","Risco químico","Risco elétrico","Risco ergonômico"],"correta":1,"explicacao":"Ácidos representam risco químico por sua corrosividade e potencial de causar danos à pele e superfícies."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Um pesquisador manipula amostras de sangue sem luvas. Qual risco está presente?","opcoes":["Risco físico","Risco biológico","Risco mecânico","Risco térmico"],"correta":1,"explicacao":"O contato com sangue pode envolver patógenos, caracterizando risco biológico."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Um equipamento elétrico com fio desencapado representa qual risco?","opcoes":["Risco químico","Risco biológico","Risco elétrico","Risco ambiental"],"correta":2,"explicacao":"Fios desencapados representam risco elétrico devido à possibilidade de choque."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Qual situação representa risco de inalação?","opcoes":["Contato com vidro quebrado","Respiração de vapores tóxicos","Uso de jaleco","Lavagem de mãos"],"correta":1,"explicacao":"A inalação de vapores tóxicos caracteriza risco químico por via respiratória."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Durante uma aula prática, um aluno aquece substâncias sem proteção adequada. Qual risco é mais provável?","opcoes":["Risco biológico","Risco térmico","Risco genético","Risco ambiental"],"correta":1,"explicacao":"O aquecimento de substâncias pode causar queimaduras, caracterizando risco térmico."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Um estudante utiliza um tubo de ensaio sem óculos de proteção e ocorre uma reação com respingos. Qual o principal risco?","opcoes":["Risco elétrico","Risco químico com exposição ocular","Risco biológico por ingestão","Risco ergonômico"],"correta":1,"explicacao":"Respingos de substâncias químicas podem atingir os olhos, causando lesões químicas oculares."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Qual combinação representa corretamente um risco físico em laboratório?","opcoes":["Vírus e bactérias","Ácidos e bases","Radiação e cortes por vidro","Amostras biológicas e sangue"],"correta":2,"explicacao":"Risco físico envolve agentes como radiação, calor, impacto e cortes, sem envolvimento químico ou biológico."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Riscos em laboratório","pergunta":"Um técnico descarta agulhas usadas de forma inadequada. Qual é o principal risco associado?","opcoes":["Risco químico por ácidos","Risco biológico por perfuração contaminada","Risco térmico por aquecimento","Risco elétrico por contato indireto"],"correta":1,"explicacao":"Agulhas contaminadas podem causar perfurações e transmissão de microrganismos, caracterizando risco biológico."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Qual é um cuidado básico obrigatório ao entrar em um laboratório?","opcoes":["Comer alimentos dentro do laboratório","Usar jaleco e EPIs adequados","Trabalhar sem proteção para facilitar o manuseio","Lavar vidrarias apenas no final do experimento"],"correta":1,"explicacao":"O uso de jaleco e EPIs é essencial para proteção contra riscos biológicos, químicos e físicos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"O que deve ser feito com as mãos antes e depois das atividades no laboratório?","opcoes":["Lavar as mãos corretamente","Passar álcool apenas se estiver visivelmente sujo","Não lavar para evitar desperdício de água","Usar apenas luvas sem higienização"],"correta":0,"explicacao":"A higienização das mãos reduz o risco de contaminação cruzada."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Qual atitude é correta dentro de um laboratório?","opcoes":["Beber líquidos durante o experimento","Manter bancada organizada e limpa","Guardar materiais sem identificação","Misturar substâncias sem orientação"],"correta":1,"explicacao":"A organização da bancada evita acidentes e contaminações."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Qual equipamento de proteção individual é usado para proteger as mãos?","opcoes":["Óculos de proteção","Máscara facial","Luvas","Jaleco"],"correta":2,"explicacao":"As luvas protegem as mãos contra agentes biológicos e químicos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Durante uma aula prática, um aluno vai manipular culturas bacterianas. O que ele deve fazer antes de iniciar?","opcoes":["Lavar apenas as bancadas","Colocar EPIs e higienizar as mãos","Abrir as culturas antes de vestir o jaleco","Trabalhar sem luvas para maior precisão"],"correta":1,"explicacao":"EPIs e higienização das mãos são essenciais para evitar contaminação."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Um aluno derramou uma substância desconhecida na bancada. Qual é a conduta correta?","opcoes":["Ignorar e continuar o experimento","Avisar o responsável e seguir o protocolo de limpeza","Passar o material para outro colega limpar sem proteção","Secar com as mãos sem luvas"],"correta":1,"explicacao":"Qualquer derramamento deve ser tratado conforme protocolo de biossegurança."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Ao final de um experimento com materiais biológicos, o que deve ser feito?","opcoes":["Descartar resíduos no lixo comum","Deixar materiais na bancada","Seguir o descarte adequado de resíduos biológicos","Levar materiais para casa para lavar"],"correta":2,"explicacao":"Resíduos biológicos devem ser descartados em local apropriado para evitar contaminação."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Qual prática reduz o risco de acidentes com fogo no laboratório?","opcoes":["Manter cabelo solto próximo a chama","Usar álcool sem supervisão","Evitar substâncias inflamáveis próximas a fontes de calor","Trabalhar com chama aberta próxima a papéis"],"correta":2,"explicacao":"Manter materiais inflamáveis longe de fontes de calor evita incêndios."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Qual atitude aumenta o risco de contaminação no laboratório?","opcoes":["Uso de jaleco fechado","Higienização das mãos","Compartilhar materiais sem esterilização","Uso de luvas descartáveis"],"correta":2,"explicacao":"Compartilhar materiais sem esterilização favorece a contaminação cruzada."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Durante o manuseio de substâncias químicas, qual cuidado é mais adequado?","opcoes":["Cheirar diretamente os reagentes","Usar pipeta com a boca","Utilizar cabine de segurança quando necessário","Misturar reagentes sem orientação"],"correta":2,"explicacao":"A cabine de segurança protege contra vapores e agentes perigosos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Qual combinação representa um cuidado correto em laboratório?","opcoes":["Comer e beber durante o experimento","Usar EPIs e manter bancada organizada","Descartar resíduos no lixo comum sempre","Trabalhar sem supervisão para ganhar tempo"],"correta":1,"explicacao":"EPIs e organização reduzem riscos de acidentes e contaminação."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Cuidados em laboratório","pergunta":"Um estudante precisa transportar uma substância perigosa dentro do laboratório. Qual é a forma correta?","opcoes":["Em recipiente identificado e fechado","Em copo aberto para facilitar acesso","Sem identificação para evitar pânico","Em qualquer recipiente disponível"],"correta":0,"explicacao":"Substâncias perigosas devem ser transportadas em recipientes fechados e identificados."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual é o principal objetivo da biossegurança em laboratório?","opcoes":["Aumentar a velocidade dos experimentos","Garantir a segurança de profissionais e evitar contaminações","Reduzir o uso de equipamentos de proteção","Eliminar todos os microrganismos do ambiente"],"correta":1,"explicacao":"A biossegurança tem como objetivo prevenir riscos e proteger profissionais, o ambiente e as amostras."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual equipamento é considerado um EPI básico em laboratório?","opcoes":["Placa de Petri","Jaleco","Béquer","Proveta"],"correta":1,"explicacao":"O jaleco é um EPI essencial para proteção contra contaminações."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual atitude é correta em um laboratório de microbiologia?","opcoes":["Comer durante o experimento","Manter bancada organizada e limpa","Cheirar diretamente culturas","Trabalhar sem luvas"],"correta":1,"explicacao":"A organização e limpeza reduzem riscos de contaminação e acidentes."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"O que significa EPI?","opcoes":["Equipamento de Proteção Individual","Elemento de Preparo Interno","Equipamento de Processo Industrial","Elemento de Proteção Institucional"],"correta":0,"explicacao":"EPI significa Equipamento de Proteção Individual, usado para a segurança do trabalhador."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Em um laboratório, um aluno deve manipular culturas bacterianas. O que ele deve fazer antes?","opcoes":["Usar EPIs e higienizar as mãos","Abrir culturas sem proteção","Retirar o jaleco para conforto","Compartilhar materiais sem esterilização"],"correta":0,"explicacao":"O uso de EPIs e a higienização das mãos são medidas básicas de biossegurança."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Um pesquisador derrama um reagente químico na bancada. Qual é a conduta correta?","opcoes":["Ignorar e continuar o trabalho","Avisar o responsável e seguir o protocolo de contenção e limpeza","Secar com papel comum sem proteção","Lavar imediatamente com água sem avaliar o reagente"],"correta":1,"explicacao":"Acidentes devem ser tratados seguindo protocolos de biossegurança adequados ao tipo de substância."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual prática ajuda a evitar contaminação cruzada?","opcoes":["Uso compartilhado de luvas","Higienização das mãos e esterilização de materiais","Uso de materiais sem esterilização","Manter portas abertas durante manipulação de culturas"],"correta":1,"explicacao":"A higienização das mãos e a esterilização evitam a transferência de microrganismos entre amostras."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual situação representa risco biológico?","opcoes":["Contato com fogo","Exposição a microrganismos patogênicos","Queda de objetos pesados","Choque elétrico"],"correta":1,"explicacao":"Risco biológico envolve exposição a agentes infecciosos como vírus e bactérias."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Durante um experimento, qual atitude aumenta o risco de acidente?","opcoes":["Uso de jaleco fechado","Organização da bancada","Uso de EPIs adequados","Manuseio de reagentes sem orientação do professor"],"correta":3,"explicacao":"Manusear reagentes sem orientação aumenta o risco de acidentes químicos e biológicos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual alternativa melhor representa uma medida de prevenção em laboratório?","opcoes":["Descartar resíduos no lixo comum","Uso de EPIs e descarte correto de resíduos","Compartilhar materiais sem esterilização","Evitar lavar as mãos para economizar tempo"],"correta":1,"explicacao":"O uso de EPIs e o descarte correto de resíduos são fundamentais para a biossegurança."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual combinação apresenta uma prática correta de biossegurança?","opcoes":["Comer no laboratório e usar luvas reutilizáveis","Higienizar as mãos e usar EPIs adequados","Manter bancada suja para não perder amostras","Compartilhar pipetas sem esterilização"],"correta":1,"explicacao":"Higienizar as mãos e usar EPIs adequados são práticas seguras em laboratório."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança","pergunta":"Qual atitude é mais adequada ao lidar com resíduos biológicos?","opcoes":["Descartar em lixo comum","Armazenar sem identificação","Seguir normas de descarte específico","Reutilizar materiais contaminados"],"correta":2,"explicacao":"Resíduos biológicos devem seguir normas específicas de descarte para evitar contaminação."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual é o principal objetivo da biossegurança em laboratório?","opcoes":["Aumentar a velocidade dos experimentos","Eliminar todos os microrganismos do ambiente","Garantir a segurança de profissionais e evitar contaminações","Reduzir o uso de equipamentos de proteção"],"correta":2,"explicacao":"A biossegurança tem como objetivo prevenir riscos e proteger profissionais, o ambiente e as amostras."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual atitude representa uma prática correta de biossegurança?","opcoes":["Comer dentro do laboratório","Cheirar culturas diretamente","Usar EPIs adequados","Reutilizar luvas descartáveis sem higienização"],"correta":2,"explicacao":"O uso de EPIs reduz riscos de contaminação e acidentes."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual equipamento é considerado um EPI?","opcoes":["Béquer","Proveta","Jaleco","Placa de Petri"],"correta":2,"explicacao":"O jaleco é um Equipamento de Proteção Individual essencial em laboratório."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"O que significa EPI?","opcoes":["Equipamento de Processo Interno","Elemento de Proteção Institucional","Equipamento de Proteção Individual","Elemento de Preparação Interna"],"correta":2,"explicacao":"EPI significa Equipamento de Proteção Individual, usado para segurança do trabalhador."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual é a principal função da higienização das mãos?","opcoes":["Aumentar a velocidade do experimento","Evitar contaminação cruzada","Melhorar a precisão de pipetas","Reduzir custo do laboratório"],"correta":1,"explicacao":"A higienização das mãos evita a transmissão de microrganismos entre amostras e pessoas."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Um aluno derrama uma substância desconhecida na bancada. O que deve fazer?","opcoes":["Ignorar e continuar o experimento","Avisar o responsável e seguir o protocolo de segurança","Limpar sem proteção","Testar a substância para identificar"],"correta":1,"explicacao":"Derramamentos devem ser tratados seguindo protocolos de biossegurança."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual prática ajuda a evitar contaminação cruzada?","opcoes":["Compartilhar luvas entre colegas","Esterilização de materiais","Usar materiais sem limpeza","Manter bancada suja"],"correta":1,"explicacao":"A esterilização de materiais evita transferência de microrganismos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual situação representa risco biológico?","opcoes":["Contato com fogo","Queda de vidro limpo","Exposição a sangue contaminado","Uso de jaleco"],"correta":2,"explicacao":"Sangue contaminado pode conter microrganismos patogênicos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual é a conduta correta ao descartar resíduos biológicos?","opcoes":["Lixo comum","Guardar para reutilização","Descarte específico para resíduos biológicos","Jogar na pia"],"correta":2,"explicacao":"Resíduos biológicos devem ser descartados em recipientes apropriados."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual alternativa define risco químico?","opcoes":["Contato com vírus","Cortes com vidro","Exposição a substâncias corrosivas","Choque elétrico"],"correta":2,"explicacao":"Risco químico envolve substâncias como ácidos e bases que podem causar danos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Um aluno manipula culturas sem higienizar as mãos. Qual o principal risco?","opcoes":["Risco elétrico","Risco biológico","Risco térmico","Risco mecânico"],"correta":1,"explicacao":"A falta de higienização pode levar à contaminação biológica."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual conjunto representa apenas EPIs?","opcoes":["Álcool, água e sabão","Jaleco, luvas e óculos de proteção","Béquer, proveta e pipeta","Placa de Petri e funil"],"correta":1,"explicacao":"EPIs são equipamentos de proteção individual como jaleco, luvas e óculos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual atitude aumenta o risco de acidente em laboratório?","opcoes":["Uso de EPIs","Organização da bancada","Manuseio sem orientação","Higienização das mãos"],"correta":2,"explicacao":"Trabalhar sem orientação aumenta o risco de acidentes químicos e biológicos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório","pergunta":"Qual é uma medida preventiva correta em laboratório?","opcoes":["Descartar resíduos no lixo comum","Compartilhar materiais sem esterilização","Uso de EPIs e descarte adequado","Evitar higienização das mãos"],"correta":2,"explicacao":"O uso de EPIs e descarte correto de resíduos são medidas de biossegurança."},
+
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Em um laboratório de microbiologia, qual procedimento é mais adequado ao lidar com uma amostra potencialmente contaminada de nível desconhecido?","opcoes":["Usar cabine de segurança biológica e EPIs completos","Manipular sem EPI para maior precisão","Descartar imediatamente no lixo comum","Testar diretamente no ambiente externo"],"correta":0,"explicacao":"A cabine de segurança biológica e EPIs reduzem o risco de exposição a agentes infecciosos desconhecidos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual situação exige obrigatoriamente a desinfecção imediata da bancada de trabalho?","opcoes":["Após uso de jaleco limpo","Após contato com material biológico potencialmente infeccioso","Após leitura de protocolo","Após organização de materiais limpos"],"correta":1,"explicacao":"Qualquer contato com material potencialmente infeccioso exige desinfecção imediata da área."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual diferença melhor define desinfecção e esterilização?","opcoes":["São processos idênticos","Esterilização elimina todas as formas de vida microbiana, desinfecção reduz carga microbiana","Desinfecção elimina todos os microrganismos, esterilização não","Desinfecção é mais forte que esterilização"],"correta":1,"explicacao":"A esterilização elimina totalmente os microrganismos, enquanto a desinfecção apenas reduz sua quantidade."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Em caso de acidente com material perfurocortante contaminado, qual é a conduta correta?","opcoes":["Continuar o trabalho normalmente","Reutilizar o material após lavagem simples","Lavar o local, comunicar o responsável e seguir protocolo de acidente","Esconder o acidente"],"correta":2,"explicacao":"Acidentes com perfurocortantes exigem lavagem, notificação e protocolo específico de biossegurança."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual prática aumenta significativamente o risco de aerossóis contaminantes?","opcoes":["Uso de cabine de segurança","Abrir tubos lentamente","Pipetagem com boca","Desinfecção de materiais"],"correta":2,"explicacao":"A pipetagem com a boca pode gerar aerossóis e exposição a agentes infecciosos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual é o principal objetivo do nível de biossegurança 2 (NB-2)?","opcoes":["Manipular agentes de risco moderado com proteção adequada","Trabalhar com materiais inertes","Trabalhar sem restrições com patógenos perigosos","Eliminar necessidade de EPIs"],"correta":0,"explicacao":"O NB-2 envolve agentes de risco moderado e exige práticas e equipamentos de proteção."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual comportamento representa falha grave de biossegurança?","opcoes":["Descarte correto de resíduos","Higienizar bancada após uso","Uso de luvas durante manipulação","Armazenar alimentos dentro do laboratório"],"correta":3,"explicacao":"Alimentos no laboratório aumentam risco de contaminação e exposição a agentes biológicos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual é a função principal da autoclave em laboratório?","opcoes":["Resfriar amostras","Medir volumes com precisão","Misturar soluções químicas","Esterilizar materiais por calor e pressão"],"correta":3,"explicacao":"A autoclave esteriliza materiais utilizando vapor sob pressão e alta temperatura."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual prática reduz risco de contaminação ao manipular culturas bacterianas?","opcoes":["Usar as mãos sem luvas","Falar sobre a cultura durante o manuseio","Deixar placas abertas por longos períodos","Trabalhar próximo ao fluxo laminar ou chama de segurança"],"correta":3,"explicacao":"Fluxo laminar ou chama reduz contaminação do ambiente e das amostras."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual é o principal risco de não rotular corretamente amostras biológicas?","opcoes":["Aumento da velocidade do experimento","Redução de custo","Melhora na precisão","Perda de controle e possível contaminação cruzada"],"correta":3,"explicacao":"A falta de identificação pode causar troca de amostras e contaminação cruzada."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual procedimento deve ser seguido antes de sair do laboratório?","opcoes":["Deixar EPIs sobre a bancada","Levar materiais para casa","Desligar apenas parte dos equipamentos","Higienizar mãos e retirar EPIs corretamente"],"correta":3,"explicacao":"A saída segura exige remoção correta de EPIs e higienização das mãos."},
+{"materia":"Microbiologia (Laboratório/Biossegurança)","assunto":"Biossegurança em laboratório II","pergunta":"Qual é a principal função de um protocolo de biossegurança?","opcoes":["Padronizar práticas seguras e reduzir riscos","Substituir o uso de EPIs","Aumentar a complexidade dos experimentos","Eliminar necessidade de treinamento"],"correta":0,"explicacao":"Protocolos de biossegurança padronizam condutas seguras e reduzem riscos laboratoriais."}
+
+]
+
+const assuntosConcluidos={}
+
+// ==========================
+// REFERÊNCIAS DE ELEMENTOS HTML
+// ==========================
+const loginDiv=document.getElementById("login")
+const menuDiv=document.getElementById("menu")
+const quizDiv=document.getElementById("quiz")
+const btnEntrar=document.getElementById("btnEntrar")
+const btnConfirmar=document.getElementById("btnConfirmar")
+const btnProxima=document.getElementById("btnProxima")
+const btnVoltar=document.getElementById("btnVoltar")
+
+// ==========================
+// EVENTOS DOS BOTÕES
+// ==========================
+btnEntrar.addEventListener("click", entrar)
+btnConfirmar.addEventListener("click", confirmarResposta)
+btnProxima.addEventListener("click", proxima)
+btnVoltar.addEventListener("click", voltarMenu)
+
+
+// ==========================
+// FUNÇÃO ENTRAR
+// ==========================
+function entrar(){
+  let nome=document.getElementById("nomeUsuario").value.trim()
+  if(nome===""){alert("Digite seu nome"); return}
+  usuario=nome
+  localStorage.setItem("usuario-" + QUIZ_ID, nome)
+  loginDiv.style.display="none"
+  menuDiv.style.display="block"
+  criarMenuMaterias()
+}
+
+
+// ==========================
+// CRIAR MENU DE MATÉRIAS
+// ==========================
+function criarMenuMaterias(){
+  menuDiv.innerHTML = "<h1>Quiz de Microbiologia</h1><h2>Olá " + usuario + "</h2><h2>Escolha a matéria</h2>"
+  let materias = [...new Set(banco.map(p => p.materia))]
+
+  materias.forEach(m => {
+    let botao = document.createElement("div")
+    botao.className = "temaBtn"
+
+    // Calcular progresso total da matéria (incluindo assuntos concluídos)
+    let totalQuestoesMateria = banco.filter(p => p.materia === m).length
+    let acertosUsuario = 0
+    let assuntosDaMateria = [...new Set(banco.filter(p => p.materia === m).map(p => p.assunto))]
+
+    assuntosDaMateria.forEach(a => {
+      let chave = QUIZ_ID + "-" + m + "-" + a
+      let salvo = localStorage.getItem(chave)
+
+      // Somar acertos salvos
+      if (salvo) {
+        let dados = JSON.parse(salvo)
+        acertosUsuario += dados.acertos || 0
+      }
+
+
+
+      // Somar assuntos concluídos manualmente
+      if (assuntosConcluidos[m] && assuntosConcluidos[m][a]) {
+        let totalQuestoesAssunto = banco.filter(p => p.materia === m && p.assunto === a).length
+        acertosUsuario += totalQuestoesAssunto
+      }
+    })
+
+    let porcentagem = (totalQuestoesMateria > 0) ? (acertosUsuario / totalQuestoesMateria) * 100 : 0
+    botao.title = "Você acertou " + acertosUsuario + " de " + totalQuestoesMateria + " questões desta matéria"
+
+    botao.innerHTML =
+      "<div style='font-size:22px'>" + m + "</div>" +
+      "<div style='font-size:16px;opacity:0.8'>Progresso: " + acertosUsuario + " de " + totalQuestoesMateria + " questões corretas</div>" +
+      "<div class='progressoAssunto'><div class='barraInterna' style='width:" + porcentagem + "%'></div></div>"
+
+    botao.onclick = function() {
+      materiaSelecionada = m
+      Array.from(document.querySelectorAll(".temaBtn")).forEach(b => b.classList.remove("selecionadaMenu"))
+      botao.classList.add("selecionadaMenu")
+    }
+
+    menuDiv.appendChild(botao)
+  })
+
+  // Botão confirmar matéria
+  let confirmar = document.createElement("button")
+  confirmar.innerText = "Confirmar matéria"
+  confirmar.onclick = function() {
+    if (!materiaSelecionada) {
+      alert("Selecione uma matéria")
+      return
+    }
+    criarMenuAssuntos(materiaSelecionada)
+  }
+  menuDiv.appendChild(confirmar)
+
+  // Botão zerar progresso
+  let zerarUsuarioBtn=document.createElement("button")
+  zerarUsuarioBtn.innerText="Zerar usuário"
+  zerarUsuarioBtn.onclick=function(){
+    if(confirm("ATENÇÃO: você perderá o nome e todo o progresso deste quiz e terá que se registrar novamente. Deseja continuar?")){
+      for(let key in localStorage){
+        if(key.startsWith(QUIZ_ID + "-") || key === "usuario-" + QUIZ_ID){
+          localStorage.removeItem(key)
+        }
+      }
+      usuario=""
+      menuDiv.style.display="none"
+      loginDiv.style.display="block"
+      document.getElementById("nomeUsuario").value=""
+    }
+  }
+  menuDiv.appendChild(zerarUsuarioBtn)
+}
+
+
+// ==========================
+// CRIAR MENU DE ASSUNTOS
+// ==========================
+function criarMenuAssuntos(materia){
+  menuDiv.innerHTML="<h1>Quiz de Microbiologia</h1><h2>"+materia+"</h2><p>Escolha o assunto</p>"
+  let assuntos=[...new Set(banco.filter(p=>p.materia===materia).map(p=>p.assunto))]
+
+  assuntos.forEach(a=>{
+    let botao=document.createElement("div")
+    botao.className="temaBtn"
+
+    let chave=QUIZ_ID + "-" + materia + "-" + a
+    let salvo=localStorage.getItem(chave)
+if (assuntosConcluidos[materia] && assuntosConcluidos[materia][a]) {
+  localStorage.removeItem(chave)
+}
+
+    let totalQuestoes=banco.filter(p=>p.materia===materia && p.assunto===a).length
+    let respondidas=0
+    let acertos=0
+    let porcentagem=0
+    let progressoTexto="Respondidas: 0 de "+totalQuestoes+" | Acertos: 0"
+
+    if(salvo){
+      let dados=JSON.parse(salvo)
+      acertos=dados.acertos || 0
+      respondidas=dados.respondidasLista ? dados.respondidasLista.length : 0
+      porcentagem=(acertos/totalQuestoes)*100
+      progressoTexto="Respondidas: "+respondidas+" de "+totalQuestoes+" | Acertos: "+acertos
+    }
+
+
+
+
+    // MARCAR ASSUNTO CONCLUÍDO
+
+if (assuntosConcluidos[materia] && assuntosConcluidos[materia][a]) {
+  porcentagem = 100
+  progressoTexto = "Respondidas: " + totalQuestoes + " de " + totalQuestoes + " | Acertos: " + totalQuestoes
+}
+
+
+
+
+    botao.innerHTML=
+      "<div style='font-size:22px'>"+a+"</div>"+
+      "<div style='font-size:16px;opacity:0.8'>"+progressoTexto+"</div>"+
+      "<div class='progressoAssunto'><div class='barraInterna' style='width:"+porcentagem+"%'></div></div>"
+
+    botao.onclick=function(){
+
+if (assuntosConcluidos[materia] && assuntosConcluidos[materia][a]) {
+  alert("Este assunto já foi concluído.")
+  return
+}
+      assuntoSelecionado=a
+      Array.from(document.querySelectorAll(".temaBtn")).forEach(b=>b.classList.remove("selecionadaMenu"))
+      botao.classList.add("selecionadaMenu")
+    }
+
+    menuDiv.appendChild(botao)
+  })
+
+  // Botão iniciar quiz
+  let iniciar=document.createElement("button")
+  iniciar.innerText="Iniciar Quiz de Microbiologia"
+  iniciar.onclick=function(){
+    if(!assuntoSelecionado){alert("Selecione um assunto");return}
+    iniciarQuiz(materiaSelecionada,assuntoSelecionado)
+  }
+  menuDiv.appendChild(iniciar)
+
+  // Botão voltar
+  let voltar=document.createElement("button")
+  voltar.innerText="Voltar para matérias"
+  voltar.onclick=function(){criarMenuMaterias()}
+  menuDiv.appendChild(voltar)
+}
+
+
+// ==========================
+// FUNÇÕES DE QUIZ
+// ==========================
+function iniciarQuiz(materia,assunto){
+  perguntas=banco.filter(p=>p.materia===materia && p.assunto===assunto)
+  atual=0
+  pontos=0
+  erros=[]
+  menuDiv.style.display="none"
+  quizDiv.style.display="block"
+  carregar()
+}
+
+function carregar(){
+  let p=perguntas[atual]
+  document.getElementById("pergunta").innerText=p.pergunta
+  document.getElementById("tema").innerText=p.materia+" → "+p.assunto
+
+  for(let i=0;i<4;i++){
+    let op=document.getElementById("op"+i)
+    op.innerText=p.opcoes[i]
+    op.className="opcao"
+    op.onclick=function(){
+      opcaoSelecionada=i
+      Array.from(document.querySelectorAll(".opcao")).forEach(o=>o.classList.remove("selecionada"))
+      op.classList.add("selecionada")
+    }
+  }
+
+  document.getElementById("placar").innerText="Pergunta "+(atual+1)+" de "+perguntas.length+" | Pontos: "+pontos
+  document.getElementById("progresso").style.width=(atual/perguntas.length*100)+"%"
+  document.getElementById("explicacao").innerText=""
+  btnConfirmar.style.display="block"
+  btnProxima.style.display="none"
+  respondido=false
+  opcaoSelecionada=null
+}
+
+function confirmarResposta(){
+  if(opcaoSelecionada==null){alert("Selecione uma opção");return}
+  responder(opcaoSelecionada)
+  btnConfirmar.style.display="none"
+  btnProxima.style.display="block"
+}
+
+
+
+
+function responder(i){
+  if(respondido) return
+  respondido = true
+  let p = perguntas[atual]
+  let correta = p.correta
+
+  if(i == correta){
+    document.getElementById("op"+i).classList.add("correta")
+    pontos++
+
+  } else {
+    document.getElementById("op"+i).classList.add("errada")
+    document.getElementById("op"+correta).classList.add("correta")
+    erros.push(atual+1)
+  }
+
+  document.getElementById("explicacao").innerText = "Explicação: " + p.explicacao
+
+  let chave = QUIZ_ID + "-" + materiaSelecionada + "-" + assuntoSelecionado
+  let progresso = localStorage.getItem(chave)
+    ? JSON.parse(localStorage.getItem(chave))
+    : {acertos:0, total:perguntas.length, questoesAcertadas:[], respondidasLista:[]}
+
+if(i == correta){
+  // Caso acerte
+  if(!progresso.questoesAcertadas.includes(atual)){
+    progresso.acertos++
+    progresso.questoesAcertadas.push(atual)
+  }
+} else {
+  // Caso erre
+  // Se a questão já estava marcada como acertada, remover o acerto
+  let index = progresso.questoesAcertadas.indexOf(atual)
+  if(index !== -1){
+    progresso.questoesAcertadas.splice(index,1) // remove da lista de acertadas
+    progresso.acertos-- // subtrai um ponto
+  }
+}
+
+// Registrar que a questão foi respondida
+if(!progresso.respondidasLista.includes(atual)){
+  progresso.respondidasLista.push(atual)
+}
+
+  localStorage.setItem(chave, JSON.stringify(progresso))
+}
+
+if (assuntosConcluidos[materiaSelecionada] && assuntosConcluidos[materiaSelecionada][assuntoSelecionado]) {
+  localStorage.removeItem(chave)
+}
+
+function proxima(){
+  atual++
+  if(atual>=perguntas.length){
+    let acertos=pontos
+    let total=perguntas.length
+    let errosTotal=total-acertos
+    let listaErros=(erros.length>0) ? "\nQuestões erradas: " + erros.join(", ") : "\nVocê não errou nenhuma questão!"
+    alert("Resultado final\n\nAcertos: "+acertos+"\nErros: "+errosTotal+listaErros+"\n\nPressione OK para voltar ao menu")
+    quizDiv.style.display="none"
+    menuDiv.style.display="block"
+    criarMenuAssuntos(materiaSelecionada)
+    return
+  }
+  carregar()
+}
+
+function voltarMenu(){
+  quizDiv.style.display="none"
+  menuDiv.style.display="block"
+  criarMenuMaterias()
+}
+
+// ==========================
+// CARREGAR USUÁRIO SALVO
+// ==========================
+window.onload=function(){
+  let nomeSalvo = localStorage.getItem("usuario-" + QUIZ_ID)
+  if(nomeSalvo){
+    usuario=nomeSalvo
+    loginDiv.style.display="none"
+    menuDiv.style.display="block"
+    criarMenuMaterias()
+  }
+}
+
+if(!assuntosConcluidos[materiaSelecionada]){
+  assuntosConcluidos[materiaSelecionada] = {}
+}
+
+if(pontos >= perguntas.length){
+  assuntosConcluidos[materiaSelecionada][assuntoSelecionado] = true
+}
+
+</script>
+</body>
+</html>
